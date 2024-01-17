@@ -26,8 +26,11 @@ type JsonConfig struct {
 
 type ChannelConfig struct {
 	ChannelId string `json:"channel_id"`
-	Name      string `json:"name"`
+	Group     string `json:"group"`
 }
+
+var Api openapi.OpenAPI
+var Ctx context.Context
 
 func createConfig() error {
 	config := JsonConfig{BotId: "", BotApiToken: "", GuildId: "", Channels: []ChannelConfig{}, IsSandbox: true}
@@ -125,13 +128,12 @@ func checkConfig() {
 		log.Fatalln("botId error", err)
 	}
 	botToken := token.BotToken(botId, BotConfig.BotApiToken)
-	var api openapi.OpenAPI
 	if BotConfig.IsSandbox {
-		api = botgo.NewSandboxOpenAPI(botToken).WithTimeout(3 * time.Second)
+		Api = botgo.NewSandboxOpenAPI(botToken).WithTimeout(3 * time.Second)
 	} else {
-		api = botgo.NewOpenAPI(botToken).WithTimeout(3 * time.Second)
+		Api = botgo.NewOpenAPI(botToken).WithTimeout(3 * time.Second)
 	}
-	ctx := context.Background()
-	printGuilds(api, ctx)
-	printChannels(api, ctx)
+	Ctx = context.Background()
+	printGuilds(Api, Ctx)
+	printChannels(Api, Ctx)
 }
