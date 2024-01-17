@@ -1,27 +1,36 @@
 package config
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"github.com/tencent-connect/botgo"
+	"github.com/tencent-connect/botgo/dto"
+	"github.com/tencent-connect/botgo/openapi"
+	"github.com/tencent-connect/botgo/token"
 	"log"
 	"os"
+	"strconv"
+	"time"
 )
 
 var BotConfig JsonConfig
 
 type JsonConfig struct {
-	BotId    string          `json:"bot_id"`
-	BotToken string          `json:"bot_token"`
-	GuildId  string          `json:"guild_id"`
-	Channels []ChannelConfig `json:"channels"`
+	BotId       string          `json:"bot_id"`
+	BotApiToken string          `json:"bot_api_token"`
+	GuildId     string          `json:"guild_id"`
+	IsSandbox   bool            `json:"is_sandbox"`
+	Channels    []ChannelConfig `json:"channels"`
 }
 
 type ChannelConfig struct {
 	ChannelId string `json:"channel_id"`
-	Type      string `json:"type"`
+	Name      string `json:"name"`
 }
 
 func createConfig() error {
-	config := JsonConfig{BotId: "", BotToken: "", GuildId: "", Channels: []ChannelConfig{}}
+	config := JsonConfig{BotId: "", BotApiToken: "", GuildId: "", Channels: []ChannelConfig{}, IsSandbox: true}
 	data, err := json.MarshalIndent(config, "", "    ")
 	if err != nil {
 		return err
@@ -61,4 +70,68 @@ func init() {
 		BotConfig = config
 		break
 	}
+	checkConfig()
+}
+
+func printGuilds(api openapi.OpenAPI, ctx context.Context) {
+	if BotConfig.GuildId != "" {
+		return
+	}
+	guilds, err := api.MeGuilds(ctx, &dto.GuildPager{})
+	if err != nil {
+		log.Fatalln("printGuilds error: ", err)
+	}
+	fmt.Println()
+	fmt.Println("未填写 guild_id(频道id, 非客户端显示的id)")
+	fmt.Println("将打印机器人加入的频道")
+	for _, guild := range guilds {
+		fmt.Println()
+		fmt.Println("频道id:", guild.ID)
+		fmt.Println("频道名称:", guild.Name)
+		fmt.Println("频道描述:", guild.Desc)
+		fmt.Println("频道图标:", guild.Icon)
+		fmt.Println("频道成员数:", guild.MemberCount)
+		fmt.Println()
+	}
+	log.Fatalln("程序退出，请填写后再次运行")
+}
+
+func printChannels(api openapi.OpenAPI, ctx context.Context) {
+	if len(BotConfig.Channels) != 0 {
+		return
+	}
+	channels, err := api.Channels(ctx, BotConfig.GuildId)
+	if err != nil {
+		log.Fatalln("printChannels error: ", err)
+	}
+	fmt.Println("未填写 channels")
+	fmt.Println("将打印频道的所有子频道")
+	for _, channel := range channels {
+		fmt.Println()
+		fmt.Println("子频道id:", channel.ID)
+		fmt.Println("子频道名称:", channel.Name)
+		fmt.Println("子频道类型:", channel.Type)
+		fmt.Println()
+	}
+	log.Fatalln("程序退出，请填写后再次运行")
+}
+
+func checkConfig() {
+	if BotConfig.BotId == "" || BotConfig.BotApiToken == "" {
+		log.Fatalln("未填写bot_id或bot_api_token\n请根据 https://q.qq.com/qqbot/#/developer/developer-setting 上的内容填写")
+	}
+	botId, err := strconv.ParseUint(BotConfig.BotId, 10, 64)
+	if err != nil {
+		log.Fatalln("botId error", err)
+	}
+	botToken := token.BotToken(botId, BotConfig.BotApiToken)
+	var api openapi.OpenAPI
+	if BotConfig.IsSandbox {
+		api = botgo.NewSandboxOpenAPI(botToken).WithTimeout(3 * time.Second)
+	} else {
+		api = botgo.NewOpenAPI(botToken).WithTimeout(3 * time.Second)
+	}
+	ctx := context.Background()
+	printGuilds(api, ctx)
+	printChannels(api, ctx)
 }
