@@ -19,6 +19,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
-          goversion: 1.21
+          goversion: 1.21.6
           binary_name: "qqbot-notify"
           extra_files: LICENSE README.md
