@@ -11,6 +11,9 @@ jobs:
       matrix:
         goos: [linux, windows, darwin]
         goarch: [amd64, arm64, 386]
+        exclude: # 排除某些平台和架构
+          - goarch: 386
+            goos: darwin
 
     steps:
       - uses: actions/checkout@v3
