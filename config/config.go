@@ -21,6 +21,7 @@ type JsonConfig struct {
 	BotApiToken string          `json:"bot_api_token"`
 	GuildId     string          `json:"guild_id"`
 	IsSandbox   bool            `json:"is_sandbox"`
+	Addr        string          `json:"addr"`
 	Channels    []ChannelConfig `json:"channels"`
 }
 

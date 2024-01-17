@@ -20,7 +20,7 @@ type payload struct {
 func main() {
 	route := gin.Default()
 	route.POST("/", notify)
-	err := route.Run(":8080")
+	err := route.Run(config.BotConfig.Addr)
 	if err != nil {
 		log.Error(err)
 	}
