@@ -31,10 +31,7 @@ func filterURL(message string) string {
 	urlRegexp := regexp.MustCompile(`https?://[^\s]+`)
 	if urlRegexp.MatchString(message) {
 		url := urlRegexp.FindString(message)
-		url = strings.ReplaceAll(url, "http://", "")
-		url = strings.ReplaceAll(url, "https://", "")
-		url = strings.ReplaceAll(url, "/", "\\")
-		url = strings.ReplaceAll(url, ".", "。")
+		url = strings.ReplaceAll(url, ".", "[.]")
 		message = urlRegexp.ReplaceAllString(message, url)
 	}
 	return message
@@ -51,6 +48,9 @@ func notify(context *gin.Context) {
 	var ok bool
 	var channelId string
 	channelId = config.BotConfig.Channels[0].ChannelId
+
+	payloadObj.Message = filterURL(payloadObj.Message)
+
 	if len(s) > 1 {
 		for _, channel := range config.BotConfig.Channels {
 			group := channel.Group
@@ -63,8 +63,7 @@ func notify(context *gin.Context) {
 		}
 	}
 	if !ok {
-		message := filterURL(payloadObj.Message)
-		content = fmt.Sprintf("%s\n%s", payloadObj.Subject, message)
+		content = fmt.Sprintf("%s\n%s", payloadObj.Subject, payloadObj.Message)
 	}
 	log.Infof("发送:\n\"\"\"\n%s\n\"\"\"", content)
 	_, err = config.Api.PostMessage(config.Ctx, channelId, &dto.MessageToCreate{Content: content})
