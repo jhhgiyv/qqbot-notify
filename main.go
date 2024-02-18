@@ -9,6 +9,7 @@ import (
 	"github.com/tencent-connect/botgo/dto"
 	"github.com/tencent-connect/botgo/errs"
 	"github.com/tencent-connect/botgo/log"
+	"regexp"
 	"strings"
 )
 
@@ -24,6 +25,19 @@ func main() {
 	if err != nil {
 		log.Error(err)
 	}
+}
+
+func filterURL(message string) string {
+	urlRegexp := regexp.MustCompile(`https?://[^\s]+`)
+	if urlRegexp.MatchString(message) {
+		url := urlRegexp.FindString(message)
+		url = strings.ReplaceAll(url, "http://", "")
+		url = strings.ReplaceAll(url, "https://", "")
+		url = strings.ReplaceAll(url, "/", "\\")
+		url = strings.ReplaceAll(url, ".", "。")
+		message = urlRegexp.ReplaceAllString(message, url)
+	}
+	return message
 }
 
 func notify(context *gin.Context) {
@@ -49,7 +63,8 @@ func notify(context *gin.Context) {
 		}
 	}
 	if !ok {
-		content = fmt.Sprintf("%s\n%s", payloadObj.Subject, payloadObj.Message)
+		message := filterURL(payloadObj.Message)
+		content = fmt.Sprintf("%s\n%s", payloadObj.Subject, message)
 	}
 	log.Infof("发送:\n\"\"\"\n%s\n\"\"\"", content)
 	_, err = config.Api.PostMessage(config.Ctx, channelId, &dto.MessageToCreate{Content: content})
